@@ -1,5 +1,6 @@
 import random
 import pyperclip
+import json
 from tkinter import *
 from tkinter import messagebox
 
@@ -32,18 +33,42 @@ def save():
 	website = website_entry.get()
 	user_name = user_name_entry.get()
 	password = password_entry.get()
+	new_data = {website: {
+		"email": user_name,
+		"password": password
+	}}
 	if website == "" or password == "" or user_name == "":
 		messagebox.showwarning(title = "Oops", message = "Fields can't be empty!")
 	else:
-		is_ok = messagebox.askokcancel(
-			title = website, message = f"These are the details entered:\nEmail: {user_name}"
-			                           f"\nPassword: {password}\nIs it ok to save?")
-		if is_ok:
-			with open("data.txt", "a") as data_file:
-				data_file.write(website + " | " + user_name + " | " + password + "\n")
+		try:
+			with open("data.json", "r") as data_file:
+				data = json.load(data_file)
+		except FileNotFoundError:
+			with open("data.json", "w") as data_file:
+				json.dump(new_data, data_file, indent = 4)
+		else:
+			data.update(new_data)
+			with open("data.json", "w") as data_file:
+				json.dump(new_data, data_file, indent = 4)
+		finally:
 			website_entry.delete(0, END)
-			user_name_entry.delete(0, END)
 			password_entry.delete(0, END)
+
+# ---------------------------- FIND PASSWORD ------------------------------- #
+def find_password():
+	website = website_entry.get()
+	try:
+		with open("data.json", "r") as data_file:
+			data = json.load(data_file)
+	except FileNotFoundError:
+		messagebox.showwarning(title = "Error", message = "No Data File Found.")
+	else:
+		if website in data:
+			email = data[website]["email"]
+			password = data[website]["password"]
+			messagebox.showinfo(title = website, message = f"Email: {email}\nPassword: {password}")
+		else:
+			messagebox.showinfo(title = "Error", message = f"No details for {website} exists.")
 
 # ---------------------------- UI SETUP ------------------------------- #
 window = Tk()
@@ -80,6 +105,9 @@ password_entry.grid(column = 1, row = 3, sticky = "EW")
 # ------ BUTTON SETUP --------- #
 password_generator_button = Button(text = "Generate Password", command = generate_password)
 password_generator_button.grid(column = 2, row = 3, sticky = "EW")
+
+search_button = Button(text = "Search", command = find_password)
+search_button.grid(column = 2, row = 1, sticky = "EW")
 
 add_password_button = Button(text = "Add", width = 35, command = save)
 add_password_button.grid(column = 1, row = 4, columnspan = 2, sticky = "EW")
